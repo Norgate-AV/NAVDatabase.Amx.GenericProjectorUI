@@ -49,7 +49,6 @@ DEFINE_DEVICE
 (***********************************************************)
 DEFINE_CONSTANT
 
-
 constant integer LEVEL_VOLUME = 1
 
 constant integer ADDRESS_LEVEL_PERCENTAGE    = 1
@@ -80,9 +79,6 @@ volatile sinteger siRequestedLevel = -1
 volatile sinteger iLevel
 volatile sinteger iOldLevel
 
-// define_connect_level
-//(vdvControl, LEVEL_VOLUME, dvTP, LEVEL_VOLUME)
-
 volatile char cLampHours[2][NAV_MAX_CHARS]
 
 (***********************************************************)
@@ -100,28 +96,33 @@ DEFINE_MUTUALLY_EXCLUSIVE
 (***********************************************************)
 (* EXAMPLE: DEFINE_FUNCTION <RETURN_TYPE> <NAME> (<PARAMETERS>) *)
 (* EXAMPLE: DEFINE_CALL '<NAME>' (<PARAMETERS>) *)
+
 define_function Update() {
     iOldLevel = iLevel
+
     if (siRequestedLevel >= 0) {
-    if (siRequestedLevel == iLevel) {
-        siRequestedLevel = -1
-    }
-    }else {
-    if (!iLevelTouched) {
-        stack_var integer x
-        for (x = 1; x <= length_array(dvTP); x++) {
-        send_level dvTP[x],LEVEL_VOLUME,iLevel
+        if (siRequestedLevel == iLevel) {
+            siRequestedLevel = -1
         }
+    }
+    else {
+        if (!iLevelTouched) {
+            stack_var integer x
 
-        NAVTextArray(dvTP,ADDRESS_LEVEL_PERCENTAGE,'0',"itoa(NAVScaleValue(type_cast(iLevel),255,100,0)),'%'")
-    }
+            for (x = 1; x <= length_array(dvTP); x++) {
+            send_level dvTP[x], LEVEL_VOLUME, iLevel
+            }
+
+            NAVTextArray(dvTP, ADDRESS_LEVEL_PERCENTAGE, '0', "itoa(NAVScaleValue(type_cast(iLevel),255,100,0)),'%'")
+        }
     }
 
-    if (1) {
-    stack_var integer x
-    for (x = 1; x <= 2; x++) {
-        NAVTextArray(dvTP,ADDRESS_LAMP_HOURS[x],'0',cLampHours[x])
-    }
+    {
+        stack_var integer x
+
+        for (x = 1; x <= 2; x++) {
+            NAVTextArray(dvTP, ADDRESS_LAMP_HOURS[x], '0', cLampHours[x])
+        }
     }
 }
 
@@ -131,88 +132,98 @@ define_function Update() {
 DEFINE_START {
 
 }
+
 (***********************************************************)
 (*                THE EVENTS GO BELOW                      *)
 (***********************************************************)
 DEFINE_EVENT
-level_event[vdvObject,LEVEL_VOLUME] {
+
+level_event[vdvObject, LEVEL_VOLUME] {
     iLevel = level.value
     Update()
 }
 
-button_event[dvTP,0] {
-    push: {
-    switch (button.input.channel) {
-        case VOL_UP:
-        case VOL_DN: {
-        if (!iLocked) {
-            to[vdvObject,button.input.channel]
-        }
-        }
-        case VOL_MUTE: { to[vdvObject,button.input.channel] }
-        case LOCK_TOGGLE: {
-        iLocked = !iLocked
-        }
-        case LOCK_ON: {
-        iLocked = true
-        }
-        case LOCK_OFF: {
-        iLocked = false
-        }
-        case LEVEL_TOUCH: {
-        iLevelTouched = true
-        }
 
-    }
+button_event[dvTP, 0] {
+    push: {
+        switch (button.input.channel) {
+            case VOL_UP:
+            case VOL_DN: {
+                if (!iLocked) {
+                    to[vdvObject, button.input.channel]
+                }
+            }
+            case VOL_MUTE: {
+                to[vdvObject, button.input.channel]
+            }
+            case LOCK_TOGGLE: {
+                iLocked = !iLocked
+            }
+            case LOCK_ON: {
+                iLocked = true
+            }
+            case LOCK_OFF: {
+                iLocked = false
+            }
+            case LEVEL_TOUCH: {
+                iLevelTouched = true
+            }
+        }
     }
     release: {
-    switch (button.input.channel) {
-        case LEVEL_TOUCH: {
-        iLevelTouched = false
+        switch (button.input.channel) {
+            case LEVEL_TOUCH: {
+                iLevelTouched = false
+            }
         }
-    }
     }
 }
 
-level_event[dvTP,LEVEL_VOLUME] {
+
+level_event[dvTP, LEVEL_VOLUME] {
     if (iLevelTouched && !iLocked) {
-    siRequestedLevel = level.value
-    send_command vdvObject,"'VOLUME-',itoa(siRequestedLevel)"
-    NAVTextArray(dvTP,ADDRESS_LEVEL_PERCENTAGE,'0',"itoa(NAVScaleValue(type_cast(siRequestedLevel),255,100,0)),'%'")
+        siRequestedLevel = level.value
+        send_command vdvObject, "'VOLUME-', itoa(siRequestedLevel)"
+        NAVTextArray(dvTP, ADDRESS_LEVEL_PERCENTAGE, '0', "itoa(NAVScaleValue(type_cast(siRequestedLevel),255,100,0)),'%'")
     }
 }
+
 
 data_event[dvTP] {
     online: {
-    Update()
+        Update()
     }
 }
-
-
 
 
 data_event[vdvObject] {
     string: {
-    stack_var char cCmdHeader[NAV_MAX_CHARS]
-    stack_var char cCmdParam[2][NAV_MAX_CHARS]
-    NAVLog(NAVFormatStandardLogMessage(NAV_STANDARD_LOG_MESSAGE_TYPE_COMMAND_FROM, data.device, data.text))
-    cCmdHeader = DuetParseCmdHeader(data.text)
-    cCmdParam[1] = DuetParseCmdParam(data.text)
-    cCmdParam[2] = DuetParseCmdParam(data.text)
-    switch (cCmdHeader) {
-        case 'LAMPTIME': {
-        switch (cCmdParam[1]) {
-            case '1': {
-            cLampHours[1] = cCmdParam[2]
-            }
-            case '2': {
-            cLampHours[2] = cCmdParam[2]
-            }
-        }
+        stack_var char cCmdHeader[NAV_MAX_CHARS]
+        stack_var char cCmdParam[2][NAV_MAX_CHARS]
 
-        Update()
+        NAVErrorLog(NAV_LOG_LEVEL_DEBUG,
+                    NAVFormatStandardLogMessage(NAV_STANDARD_LOG_MESSAGE_TYPE_STRING_FROM,
+                                                data.device,
+                                                data.text))
+
+        cCmdHeader = DuetParseCmdHeader(data.text)
+        cCmdParam[1] = DuetParseCmdParam(data.text)
+        cCmdParam[2] = DuetParseCmdParam(data.text)
+
+        switch (cCmdHeader) {
+            case 'LAMPTIME': {
+                switch (cCmdParam[1]) {
+                    case '1': {
+                        cLampHours[1] = cCmdParam[2]
+                    }
+                    case '2': {
+                        cLampHours[2] = cCmdParam[2]
+                    }
+                }
+
+                Update()
+            }
         }
-    }
     }
 }
 
@@ -221,4 +232,3 @@ data_event[vdvObject] {
 (*                     END OF PROGRAM                      *)
 (*        DO NOT PUT ANY CODE BELOW THIS COMMENT           *)
 (***********************************************************)
-
