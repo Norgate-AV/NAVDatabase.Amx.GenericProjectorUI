@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0](https://github.com/Norgate-AV/NAVDatabase.Amx.GenericProjectorUI/compare/v1.0.0...v1.1.0) (2025-03-12)
+
+### 🌟 Features
+
+- update to support NAVFoundation.Amx v2.0.0 ([523860c](https://github.com/Norgate-AV/NAVDatabase.Amx.GenericProjectorUI/commit/523860ce6992b68b198eb9ee8922aef69e82f689))
+
 ## 1.0.0 (2025-01-20)
 
 ### 🌟 Features
