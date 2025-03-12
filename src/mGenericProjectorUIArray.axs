@@ -71,9 +71,9 @@ DEFINE_TYPE
 (***********************************************************)
 DEFINE_VARIABLE
 
-volatile integer iLocked
+volatile char iLocked
 
-volatile integer iLevelTouched
+volatile char iLevelTouched
 volatile sinteger siRequestedLevel = -1
 
 volatile sinteger iLevel
@@ -200,11 +200,6 @@ data_event[vdvObject] {
     string: {
         stack_var char cCmdHeader[NAV_MAX_CHARS]
         stack_var char cCmdParam[2][NAV_MAX_CHARS]
-
-        NAVErrorLog(NAV_LOG_LEVEL_DEBUG,
-                    NAVFormatStandardLogMessage(NAV_STANDARD_LOG_MESSAGE_TYPE_STRING_FROM,
-                                                data.device,
-                                                data.text))
 
         cCmdHeader = DuetParseCmdHeader(data.text)
         cCmdParam[1] = DuetParseCmdParam(data.text)
